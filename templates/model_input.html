@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>X-ray Image Prediction</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 20px;
+            background-image: url('/3.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            color: #f0f0f0; /* 亮灰色文字 */
+        }
+
+        #image-container img {
+            width: 100%;
+            height: auto;
+        }
+
+        #result {
+            padding: 10px; /* 減少內部填充 */
+            margin: 10px 0; /* 減少外部邊距 */
+            background-color: rgba(255, 255, 255, 0.2); /* 半透明白色背景，透明度為0.2 */
+            border: 1px solid rgba(255, 255, 255, 0.5); /* 半透明白色邊框，透明度為0.5 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 輕微的陰影 */
+        }
+
+        #progress-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.5); /* 半透明白色背景 */
+        }
+
+        #progress-bar {
+            width: 0;
+            height: 10px;
+            background-color: #00FF7F; /* 進度條顏色 */
+        }
+
+        h1, h3 {
+            color: #ffffff; /* 白色標題 */
+        }
+
+        p {
+            color: #f0f0f0; /* 亮灰色段落文字 */
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #f0f0f0; /* 亮灰色標籤文字 */
+        }
+
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #00FF7F; /* 按鈕顏色 */
+            color: #000; /* 按鈕文字顏色 */
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #00CC66; /* 按鈕滑過顏色 */
+        }
+        #result h3 {
+            font-size: 20px; /* 標題字體大小 */
+            font-weight: bold; /* 標題粗體 */
+            color: #ffffff; /* 白色標題 */
+            margin: 5px 0; /* 調整標題邊距 */
+        }
+
+        #result p {
+            font-size: 18px; /* 段落字體大小 */
+            font-weight: bold; /* 段落粗體 */
+            color: #ffffff; /* 白色段落文字 */
+            margin: 5px 0; /* 調整段落邊距 */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>醫療AI：利用深度學習偵測胸部X光片病灶</h1>
+    <form action="/predict" method="post" enctype="multipart/form-data">
+        <label for="file">↓請選擇你要上傳的檔案</label>
+        <input type="file" id="file" name="file" accept="image/*">
+        <input type="submit" value="開始AI預測病灶">
+    </form>
+    <div id="result-container">
+        <!-- 這裡放置預測結果 -->
+    </div>
+    <div id="image-container">
+        <!-- 這裡放置圖片 -->
+    </div>
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const imageContainer = document.getElementById('image-container');
+            const resultDiv = document.getElementById('result-container');
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            // 更新進度條
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = '50%'; // 示範進度更新
+
+            reader.onload = function (e) {
+                imageContainer.innerHTML = `<img src="${e.target.result}" alt="Uploaded Image"/>`;
+            };
+
+            reader.readAsDataURL(file);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    progressBar.style.width = '100%'; // 完成進度
+                    return response.json();
+                })
+                .then(data => {
+                    imageContainer.innerHTML = `<img src="${data.image}" alt="Processed Image"/>`;
+                    resultDiv.innerHTML = `
+                        <div id="result">
+                            <h3>預測結果:</h3>
+                            <p>其他: ${(data.other * 100).toFixed(2)}%</p>
+                            <p>肺炎: ${(data.pneumonia * 100).toFixed(2)}%</p>
+                            <p>肺水腫(肺積水): ${(data.pulmonary_edema * 100).toFixed(2)}%</p>
+                            <p>肺不張: ${(data.atelectasis * 100).toFixed(2)}%</p>
+                        </div>
+                    `;
+                });
+        });
+    </script>
+</body>
+
+</html>
